@@ -11,9 +11,16 @@ import "core:fmt"
 	able to fire again.
 */
 
+//sub block design
+/*
+	obstacle's height modulo by 100, the result as the the amount of sub block.
+	the size would be equal.
+*/
+
 window_height : c.int : 800
 window_width : c.int : 600
 
+sub_block_color :[5]rl.Color = {rl.BLUE, rl.RED, rl.PINK, rl.PURPLE, rl.BROWN}
 
 object :: struct {
 	pos: rl.Vector2,
@@ -22,19 +29,27 @@ object :: struct {
 	rect : rl.Rectangle
 }
 
+sub_block :: struct {
+	pos: rl.Vector2,
+	size: rl.Vector2,
+	rect: rl.Rectangle,
+	col: rl.Color
+}
+
 player : object
 player_col := rl.GREEN
 
 obstacle :: struct {
 	pos: rl.Vector2,
 	size: rl.Vector2,
-	// rect: rl.Rectangle,
+	rect: rl.Rectangle,
 	half_dist: bool
 }
 
 obs_speed :: 200
 
 all_obs : [dynamic][2]obstacle
+all_sub_block : [dynamic]sub_block
 
 main :: proc() {
 
@@ -48,6 +63,7 @@ main :: proc() {
 		check_collision()  
 		player_movement()
 		spawn_obs()
+		create_sub_block()
 		draw()
 
 		rl.EndDrawing()
@@ -60,20 +76,22 @@ main :: proc() {
 setup :: proc() {
 	
 	player.size= {64, 64}
-	player.pos = {400, 300}
-	
+	player.pos = {400 - 64, 300 - 64}
+
 	top_obs_pos := rl.Vector2{f32(window_width) - 10, 0}
 	top_obs_size := rl.Vector2{64, 300}
-	// top_obs_rect := rl.Rectangle{top_obs_pos.x, top_obs_pos.y, top_obs_size.x, top_obs_size.y}
-	top_obs: obstacle = {top_obs_pos, top_obs_size, true}
-	
+	top_obs_rect := rl.Rectangle{top_obs_pos.x, top_obs_pos.y, top_obs_size.x, top_obs_size.y}
+	top_obs: obstacle = {top_obs_pos, top_obs_size, top_obs_rect, true}
+
 	bot_obs_pos := rl.Vector2{f32(window_width) - 10, f32(window_height) - 300}
 	bot_obs_size := rl.Vector2{64, 300}
-	bot_obs: obstacle = {bot_obs_pos, bot_obs_size, true}
+	bot_obs_rect := rl.Rectangle{bot_obs_pos.x, bot_obs_pos.y, bot_obs_size.x, bot_obs_size.y}
+	bot_obs: obstacle = {bot_obs_pos, bot_obs_size, bot_obs_rect, true}
 
 	new_obs : [2]obstacle
 	new_obs[0] = top_obs 
 	new_obs[1] = bot_obs
+
 
 	append(&all_obs, new_obs)
 	rl.InitWindow(window_width, window_height, "My First Game")	
@@ -81,23 +99,28 @@ setup :: proc() {
 }
 
 draw :: proc() {
-	rl.DrawRectangleV(player.pos, player.size, player_col)
 	for &obs_arr in all_obs {
 		for obs in obs_arr {
 			rl.DrawRectangleV(obs.pos, obs.size, rl.YELLOW)
 		}
 	}
+
+	for &block in all_sub_block {
+		rl.DrawRectangleV(block.pos, block.size, block.col)
+	}
+
+	rl.DrawRectangleV(player.pos, player.size, player_col)
 }
 
 player_movement :: proc() {
 	player.pos += player.vel * rl.GetFrameTime()
 
 	if rl.IsKeyDown(.SPACE) {
-		player.vel.y = -600
+		player.vel.y = -400
 	}
 	//gravity
 	player.vel.y += 2000 * rl.GetFrameTime()
-
+	player.rect = {player.pos.x, player.pos.y, player.size.x, player.size.y}
 }
 
 
@@ -105,6 +128,8 @@ spawn_obs :: proc() {
 	for &obs in all_obs {
 		obs[0].pos.x -= obs_speed * rl.GetFrameTime()
 		obs[1].pos.x -= obs_speed * rl.GetFrameTime()
+		obs[0].rect = {obs[0].pos.x, obs[0].pos.y, obs[0].size.x, obs[0].size.y}
+		obs[1].rect = {obs[1].pos.x, obs[1].pos.y, obs[1].size.x, obs[1].size.y}
 		
 
 		if obs[0].half_dist && obs[0].pos.x < f32(window_width)/2 {
@@ -115,17 +140,15 @@ spawn_obs :: proc() {
 			
 			top_pos := rl.Vector2{f32(window_width) - 10, 0}
 			top_size := rl.Vector2{64, f32(top_y_size)}
-			// top_rect := rl.Rectangle{top_pos.x, top_pos.y, top_size.x, top_size.y}
-			top_obs: obstacle = {top_pos, top_size, true}
+			top_rect := rl.Rectangle{top_pos.x, top_pos.y, top_size.x, top_size.y}
+			top_obs: obstacle = {top_pos, top_size, top_rect, true}
 
 			bot_pos := rl.Vector2{f32(window_width) - 10, f32(window_height) - f32(bot_y_size)}
 			bot_size := rl.Vector2{64, f32(bot_y_size)}
-			// bot_rect := rl.Rectangle{bot_pos.x, bot_pos.y, bot_size.x, bot_size.y}
-			bot_obs: obstacle = {bot_pos, bot_size, true}
+			bot_rect := rl.Rectangle{bot_pos.x, bot_pos.y, bot_size.x, bot_size.y}
+			bot_obs: obstacle = {bot_pos, bot_size, bot_rect, true}
 				
-			new_obs: [2]obstacle
-			new_obs[0] = top_obs
-			new_obs[1] = bot_obs
+			new_obs: [2]obstacle = {top_obs, bot_obs}
 
 			append(&all_obs, new_obs)
 			// fmt.println("spawn obs")
@@ -136,22 +159,48 @@ spawn_obs :: proc() {
 			pop_front(&all_obs)
 			// fmt.println("delete obs")
 		}
+		
 	}
 }
 
-//TODO: its more optimize if not creating the rect every frame but just pointing it
+
+create_sub_block :: proc() {
+	//y size of obstacle
+	for &obs_arr in all_obs {
+		for &obs, index in obs_arr {
+			result := int(obs.size.y) / 100
+			fmt.println(result)
+			for i := 0; i < result; i += 1 {
+				block_pos : rl.Vector2
+				if index == 0 {
+					block_pos = rl.Vector2{obs.pos.x, obs.pos.y + obs.size.y / f32(i)}
+				} else {
+					block_pos = rl.Vector2{obs.pos.x, obs.pos.y - obs.size.y / f32(i)}
+				}
+				block_size := rl.Vector2{obs.size.x, obs.size.y / f32(i)}
+				block_rect := rl.Rectangle{block_pos.x, block_pos.y, block_size.x, block_size.y}
+				block_color := sub_block_color[i]
+				sub_block : sub_block = {block_pos, block_size, block_rect, block_color}
+				append(&all_sub_block, sub_block)
+			}
+		}
+	}
+
+	//create the object base on the result of the modulo
+	//store it to the array
+}
+
 check_collision :: proc() {
-	player.rect = {player.pos.x, player.pos.y, player.size.x, player.size.y}
+	if player.pos.y > f32(window_height) {
+		fmt.println("Out of frame")
+	}
+
 	for &obs_arr in all_obs {
 		for &obs in obs_arr {
-			obs_rect := rl.Rectangle{obs.pos.x, obs.pos.y, obs.size.x, obs.size.y}
-			is_colliding : bool = rl.CheckCollisionRecs(player.rect, obs_rect)
+			is_colliding : bool = rl.CheckCollisionRecs(player.rect, obs.rect)
 			if is_colliding {
-				player_col = rl.RED
-				// fmt.println("collide")
-			} else {
-				player_col = rl.GREEN
-			}
+				fmt.println("collide")
+			} 
 		}
 	}
 }
