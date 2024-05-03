@@ -20,6 +20,7 @@ import "core:fmt"
 window_height : c.int : 800
 window_width : c.int : 600
 obstacle_gap : c.int : 200
+sub_block_size : int : 100
 
 sub_block_color :[5]rl.Color = {rl.WHITE, rl.RED, rl.PINK, rl.PURPLE, rl.BROWN}
 
@@ -61,7 +62,7 @@ main :: proc() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLUE)
 
-		check_collision()  
+		// check_collision()  
 		player_movement()
 		object_movement()
 		spawn_obs()
@@ -93,7 +94,7 @@ setup :: proc() {
 	new_obs[0] = top_obs 
 	new_obs[1] = bot_obs
 
-	// create_sub_block(top_obs)
+	create_sub_block(top_obs)
 	create_sub_block(bot_obs)
 
 	append(&all_obs, new_obs)
@@ -162,8 +163,8 @@ spawn_obs :: proc() {
 			bot_obs: obstacle = {bot_pos, bot_size, bot_rect, true}
 				
 			new_obs: [2]obstacle = {top_obs, bot_obs}
-			// create_sub_block(top_obs)
-			// create_sub_block(bot_obs)
+			create_sub_block(top_obs)
+			create_sub_block(bot_obs)
 
 			append(&all_obs, new_obs)
 			// fmt.println("spawn obs")
@@ -172,8 +173,8 @@ spawn_obs :: proc() {
 
 		if obs[0].pos.x < 0 - obs[0].size.x {
 			pop_front(&all_obs)
-			// delete_dynamic_array(all_sub_block[0])
-			// pop_front(&all_sub_block)
+			delete_dynamic_array(all_sub_block[0])
+			pop_front(&all_sub_block)
 			// fmt.println("delete obs")
 		}
 		
@@ -181,19 +182,16 @@ spawn_obs :: proc() {
 }
 
 
+// TODO: Handling for size that less than 100
 create_sub_block :: proc(obs: obstacle) {
-	result := int(obs.size.y) / 100
-	fmt.println(result)
+	result := int(obs.size.y) / sub_block_size 
+	fmt.println("y size : ", obs.size.y)
+	fmt.println("result : ", result)
 	sub_block_arr : [dynamic]sub_block
 		for i := 0; i < result; i += 1 {
 			block_pos : rl.Vector2
-			if obs.pos.y == 0 {
-				block_pos = rl.Vector2{obs.pos.x, obs.pos.y + (obs.size.y / f32(result)) * (f32(i))}
-			} else {
-				block_pos = rl.Vector2{obs.pos.x, obs.pos.y - (obs.size.y / f32(result)) * (f32(i))}
-			}
-
-			fmt.println(block_pos.y)
+			block_pos = rl.Vector2{obs.pos.x, obs.pos.y + (obs.size.y / f32(result)) * (f32(i))}
+			// fmt.println(block_pos.y)
 			block_size := rl.Vector2{obs.size.x, obs.size.y / f32(result)}
 			block_rect := rl.Rectangle{block_pos.x, block_pos.y, block_size.x, block_size.y}
 			block_color := sub_block_color[i]
