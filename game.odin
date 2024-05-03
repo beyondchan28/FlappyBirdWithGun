@@ -90,10 +90,11 @@ setup :: proc() {
 	new_obs[0] = top_obs 
 	new_obs[1] = bot_obs
 
+	append(&all_obs, new_obs)
+	
 	create_sub_block(top_obs)
 	create_sub_block(bot_obs)
 
-	append(&all_obs, new_obs)
 	rl.InitWindow(window_width, window_height, "My First Game")	
 	rl.SetTargetFPS(60)
 }
@@ -156,18 +157,21 @@ spawn_obs :: proc() {
 			bot_obs: obstacle = {bot_pos, bot_size, true}
 				
 			new_obs: [2]obstacle = {top_obs, bot_obs}
+			append(&all_obs, new_obs)
 			create_sub_block(top_obs)
 			create_sub_block(bot_obs)
 
-			append(&all_obs, new_obs)
 			// fmt.println("spawn obs")
 			// fmt.println("array length : ", len(all_obs)) 
 		}
 
 		if obs[0].pos.x < 0 - obs[0].size.x {
+			unordered_remove(&all_sub_block, 0)
+			unordered_remove(&all_sub_block, 1)
 			pop_front(&all_obs)
-			defer delete(all_sub_block[0])
-			pop_front(&all_sub_block)
+			// all_sub_block[0] = {}
+			fmt.println(len(all_obs))
+
 			fmt.println("delete obs")
 			fmt.println(len(all_sub_block))
 		}
