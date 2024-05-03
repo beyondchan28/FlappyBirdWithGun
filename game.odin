@@ -20,9 +20,8 @@ import "core:fmt"
 window_height : c.int : 800
 window_width : c.int : 600
 obstacle_gap : c.int : 200
-sub_block_size : int : 100
+sub_block_size : int : 20
 
-sub_block_color :[5]rl.Color = {rl.WHITE, rl.RED, rl.PINK, rl.PURPLE, rl.BROWN}
 
 object :: struct {
 	pos: rl.Vector2,
@@ -44,7 +43,6 @@ player_col := rl.GREEN
 obstacle :: struct {
 	pos: rl.Vector2,
 	size: rl.Vector2,
-	rect: rl.Rectangle,
 	half_dist: bool
 }
 
@@ -82,13 +80,11 @@ setup :: proc() {
 
 	top_obs_pos := rl.Vector2{f32(window_width), 0}
 	top_obs_size := rl.Vector2{64, 300}
-	top_obs_rect := rl.Rectangle{top_obs_pos.x, top_obs_pos.y, top_obs_size.x, top_obs_size.y}
-	top_obs: obstacle = {top_obs_pos, top_obs_size, top_obs_rect, true}
+	top_obs: obstacle = {top_obs_pos, top_obs_size, true}
 
 	bot_obs_pos := rl.Vector2{f32(window_width), f32(window_height) - f32(obstacle_gap) - 100 }
 	bot_obs_size := rl.Vector2{64, 300}
-	bot_obs_rect := rl.Rectangle{bot_obs_pos.x, bot_obs_pos.y, bot_obs_size.x, bot_obs_size.y}
-	bot_obs: obstacle = {bot_obs_pos, bot_obs_size, bot_obs_rect, true}
+	bot_obs: obstacle = {bot_obs_pos, bot_obs_size, true}
 
 	new_obs : [2]obstacle
 	new_obs[0] = top_obs 
@@ -134,7 +130,6 @@ object_movement :: proc() {
 	for &obs_arr in all_obs {
 		for &obs in obs_arr {
 			obs.pos.x -= obs_speed * rl.GetFrameTime()
-			obs.rect = {obs.pos.x, obs.pos.y, obs.size.x, obs.size.y}
 		}
 	}
 	for &sub_block_arr in all_sub_block {
@@ -154,13 +149,11 @@ spawn_obs :: proc() {
 			
 			top_pos := rl.Vector2{f32(window_width) - 10, 0}
 			top_size := rl.Vector2{64, f32(top_y_size)}
-			top_rect := rl.Rectangle{top_pos.x, top_pos.y, top_size.x, top_size.y}
-			top_obs: obstacle = {top_pos, top_size, top_rect, true}
+			top_obs: obstacle = {top_pos, top_size, true}
 
 			bot_pos := rl.Vector2{f32(window_width) - 10, f32(window_height) - f32(bot_y_size)}
 			bot_size := rl.Vector2{64, f32(bot_y_size)}
-			bot_rect := rl.Rectangle{bot_pos.x, bot_pos.y, bot_size.x, bot_size.y}
-			bot_obs: obstacle = {bot_pos, bot_size, bot_rect, true}
+			bot_obs: obstacle = {bot_pos, bot_size, true}
 				
 			new_obs: [2]obstacle = {top_obs, bot_obs}
 			create_sub_block(top_obs)
@@ -173,33 +166,33 @@ spawn_obs :: proc() {
 
 		if obs[0].pos.x < 0 - obs[0].size.x {
 			pop_front(&all_obs)
-			delete_dynamic_array(all_sub_block[0])
+			defer delete(all_sub_block[0])
 			pop_front(&all_sub_block)
-			// fmt.println("delete obs")
+			fmt.println("delete obs")
+			fmt.println(len(all_sub_block))
 		}
 		
 	}
 }
 
 
-// TODO: Handling for size that less than 100
+// TODO: need to free t
 create_sub_block :: proc(obs: obstacle) {
 	result := int(obs.size.y) / sub_block_size 
+	sub_block_arr := make([dynamic]sub_block)
 	fmt.println("y size : ", obs.size.y)
 	fmt.println("result : ", result)
-	sub_block_arr : [dynamic]sub_block
-		for i := 0; i < result; i += 1 {
+		for i := 0; i < result; i += 1 {	
 			block_pos : rl.Vector2
 			block_pos = rl.Vector2{obs.pos.x, obs.pos.y + (obs.size.y / f32(result)) * (f32(i))}
 			// fmt.println(block_pos.y)
 			block_size := rl.Vector2{obs.size.x, obs.size.y / f32(result)}
 			block_rect := rl.Rectangle{block_pos.x, block_pos.y, block_size.x, block_size.y}
-			block_color := sub_block_color[i]
+			block_color := rl.Color{u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), 255}
 			sub_block : sub_block = {block_pos, block_size, block_rect, block_color}
 			append(&sub_block_arr, sub_block)
 		}
 	append(&all_sub_block, sub_block_arr)
-	// fmt.println(len(all_sub_block))
 }
 
 check_collision :: proc() {
@@ -207,12 +200,12 @@ check_collision :: proc() {
 		fmt.println("Out of frame")
 	}
 
-	for &obs_arr in all_obs {
-		for &obs in obs_arr {
-			is_colliding : bool = rl.CheckCollisionRecs(player.rect, obs.rect)
-			if is_colliding {
-				fmt.println("collide")
-			} 
-		}
-	}
+	// for &obs_arr in all_obs {
+	// 	for &obs in obs_arr {
+	// 		is_colliding : bool = rl.CheckCollisionRecs(player.rect, obs.rect)
+	// 		if is_colliding {
+	// 			fmt.println("collide")
+	// 		} 
+	// 	}
+	// }
 }
