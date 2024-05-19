@@ -17,6 +17,13 @@ import "core:fmt"
 	the size would be equal.
 */
 
+//NOTE: 
+/*
+	kinda clueless at this on why the bug is happening. so need to learn 
+how to use the debugger on odin to get an idea about why this happening.
+
+*/
+
 window_height : c.int : 800
 window_width : c.int : 600
 obstacle_gap : c.int : 200
@@ -49,7 +56,7 @@ obstacle :: struct {
 obs_speed :: 200
 
 all_obs : [dynamic][2]obstacle
-all_sub_block : [dynamic][dynamic]sub_block
+all_sub_block : [dynamic][2][dynamic]sub_block
 
 main :: proc() {
 
@@ -89,11 +96,14 @@ setup :: proc() {
 	new_obs : [2]obstacle
 	new_obs[0] = top_obs 
 	new_obs[1] = bot_obs
-
 	append(&all_obs, new_obs)
+
+
+	sub_block_pair : [2][dynamic]sub_block
+	sub_block_pair[0] = create_sub_block(top_obs)
+	sub_block_pair[1] = create_sub_block(bot_obs)
+	append(&all_sub_block, sub_block_pair)
 	
-	create_sub_block(top_obs)
-	create_sub_block(bot_obs)
 
 	rl.InitWindow(window_width, window_height, "My First Game")	
 	rl.SetTargetFPS(60)
@@ -107,8 +117,10 @@ draw :: proc() {
 	}
 
 	for &sub_block_arr in all_sub_block {
-		for &sub_block in sub_block_arr {
-			rl.DrawRectangleV(sub_block.pos, sub_block.size, sub_block.col)
+		for &sub_block_pair in sub_block_arr {
+			for &sub_block in sub_block_pair {
+				rl.DrawRectangleV(sub_block.pos, sub_block.size, sub_block.col)
+			}
 		}
 	}
 
@@ -134,8 +146,10 @@ object_movement :: proc() {
 		}
 	}
 	for &sub_block_arr in all_sub_block {
-		for &sub_block in sub_block_arr {
-			sub_block.pos.x -= obs_speed * rl.GetFrameTime()
+		for &sub_block_pair in sub_block_arr {
+			for &sub_block in sub_block_pair {
+				sub_block.pos.x -= obs_speed * rl.GetFrameTime()
+			}
 		}
 	}
 }
@@ -158,45 +172,47 @@ spawn_obs :: proc() {
 				
 			new_obs: [2]obstacle = {top_obs, bot_obs}
 			append(&all_obs, new_obs)
-			create_sub_block(top_obs)
-			create_sub_block(bot_obs)
+			sub_block_pair : [2][dynamic]sub_block
+			sub_block_pair[0] = create_sub_block(top_obs)
+			sub_block_pair[1] = create_sub_block(bot_obs)
+			append(&all_sub_block, sub_block_pair)
+
 
 			// fmt.println("spawn obs")
 			// fmt.println("array length : ", len(all_obs)) 
 		}
 
 		if obs[0].pos.x < 0 - obs[0].size.x {
-			unordered_remove(&all_sub_block, 0)
-			unordered_remove(&all_sub_block, 1)
 			pop_front(&all_obs)
-			// all_sub_block[0] = {}
-			fmt.println(len(all_obs))
+			ordered_remove(&all_sub_block, 0)
 
 			fmt.println("delete obs")
-			fmt.println(len(all_sub_block))
+			fmt.println("all obs : ", len(all_obs))
+			fmt.println("all sub block : ", len(all_sub_block))
 		}
 		
 	}
 }
 
 
-// TODO: need to free t
-create_sub_block :: proc(obs: obstacle) {
+create_sub_block :: proc(obs: obstacle) -> [dynamic]sub_block {
 	result := int(obs.size.y) / sub_block_size 
 	sub_block_arr := make([dynamic]sub_block)
-	fmt.println("y size : ", obs.size.y)
-	fmt.println("result : ", result)
-		for i := 0; i < result; i += 1 {	
-			block_pos : rl.Vector2
-			block_pos = rl.Vector2{obs.pos.x, obs.pos.y + (obs.size.y / f32(result)) * (f32(i))}
-			// fmt.println(block_pos.y)
-			block_size := rl.Vector2{obs.size.x, obs.size.y / f32(result)}
-			block_rect := rl.Rectangle{block_pos.x, block_pos.y, block_size.x, block_size.y}
-			block_color := rl.Color{u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), 255}
-			sub_block : sub_block = {block_pos, block_size, block_rect, block_color}
-			append(&sub_block_arr, sub_block)
-		}
-	append(&all_sub_block, sub_block_arr)
+	// fmt.println("y size : ", obs.size.y)
+	// fmt.println("result : ", result)
+	for i := 0; i < result; i += 1 {	
+		block_pos : rl.Vector2
+		block_pos = rl.Vector2{obs.pos.x, obs.pos.y + (obs.size.y / f32(result)) * (f32(i))}
+		// fmt.println(block_pos.y)
+		block_size := rl.Vector2{obs.size.x, obs.size.y / f32(result)}
+		block_rect := rl.Rectangle{block_pos.x, block_pos.y, block_size.x, block_size.y}
+		block_color := rl.Color{u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), u8(rl.GetRandomValue(125, 255)), 255}
+		sub_block : sub_block = {block_pos, block_size, block_rect, block_color}
+		append(&sub_block_arr, sub_block)
+	}
+
+	return sub_block_arr
+
 }
 
 check_collision :: proc() {
