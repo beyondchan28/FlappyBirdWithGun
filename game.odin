@@ -148,9 +148,9 @@ object_movement :: proc() {
 			obs.pos.x -= obs_speed * rl.GetFrameTime()
 		}
 	}
-	for &sub_block_arr in all_sub_block {
-		for &sub_block_pair in sub_block_arr {
-			for &sub_block in sub_block_pair {
+	for &sub_block_pair in all_sub_block {
+		for &sub_block_arr in sub_block_pair {
+			for &sub_block in sub_block_arr {
 				sub_block.pos.x -= obs_speed * rl.GetFrameTime()
 				sub_block.rect = {sub_block.pos.x, sub_block.pos.y, sub_block.size.x, sub_block.size.y}	
 			}
