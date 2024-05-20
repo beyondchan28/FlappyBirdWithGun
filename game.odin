@@ -133,7 +133,7 @@ draw :: proc() {
 player_movement :: proc() {
 	player.pos += player.vel * rl.GetFrameTime()
 
-	if rl.IsKeyDown(.SPACE) {
+	if rl.IsKeyDown(.SPACE    ) {
 		player.vel.y = -400
 	}
 	//gravity
@@ -245,7 +245,7 @@ spawn_bullet :: proc(p_pos: rl.Vector2, target: rl.Vector2) {
 
 
 firing :: proc() {
-	if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+	if rl.IsMouseButtonPressed(.LEFT) {
 		spawn_bullet(player.pos, rl.GetMousePosition())
 	}		
 }
@@ -260,7 +260,8 @@ check_collision :: proc() {
 			for &sub_block, index in sub_block_pair {
 				is_player_collided : bool = rl.CheckCollisionRecs(player.rect, sub_block.rect)
 				if is_player_collided {
-					fmt.println("collided with player")
+					fmt.println("collided with player")\
+					continue
 				}
 			}
 		}
