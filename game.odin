@@ -3,6 +3,7 @@ package game
 import rl "vendor:raylib" 
 import "core:c"
 import "core:fmt"
+import "core:math"
 
 //create a flappy bird with guns
 /*
@@ -17,12 +18,7 @@ import "core:fmt"
 	the size would be equal.
 */
 
-//NOTE: 
-/*
-	kinda clueless at this on why the bug is happening. so need to learn 
-how to use the debugger on odin to get an idea about why this happening.
-
-*/
+//TODO: Implement gun, bullet, and firing with limited ammo
 
 window_height : c.int : 800
 window_width : c.int : 600
@@ -57,6 +53,7 @@ obs_speed :: 200
 
 all_obs : [dynamic][2]obstacle
 all_sub_block : [dynamic][2][dynamic]sub_block
+all_bullet : [dynamic]object
 
 main :: proc() {
 
@@ -69,6 +66,7 @@ main :: proc() {
 
 		// check_collision()  
 		player_movement()
+		firing()
 		object_movement()
 		spawn_obs()
 		draw()
@@ -99,6 +97,7 @@ setup :: proc() {
 	append(&all_obs, new_obs)
 
 
+	//BUG: The first sub block color doesnt randomized
 	sub_block_pair : [2][dynamic]sub_block
 	sub_block_pair[0] = create_sub_block(top_obs)
 	sub_block_pair[1] = create_sub_block(bot_obs)
@@ -122,6 +121,10 @@ draw :: proc() {
 				rl.DrawRectangleV(sub_block.pos, sub_block.size, sub_block.col)
 			}
 		}
+	}
+
+	for &bullet in all_bullet {
+		rl.DrawRectangleV(bullet.pos, bullet.size, rl.BLACK)
 	}
 
 	rl.DrawRectangleV(player.pos, player.size, player_col)
@@ -151,6 +154,12 @@ object_movement :: proc() {
 				sub_block.pos.x -= obs_speed * rl.GetFrameTime()
 			}
 		}
+	}
+
+	for &bullet in all_bullet {
+		angle : f32 = math.atan2_f32(bullet.vel.x, bullet.vel.y)
+		bullet.pos.x += 1000 * math.sin(angle) * rl.GetFrameTime()
+		bullet.pos.y += 1000 * math.cos(angle) * rl.GetFrameTime()
 	}
 }
 
@@ -215,10 +224,30 @@ create_sub_block :: proc(obs: obstacle) -> [dynamic]sub_block {
 
 }
 
+spawn_bullet :: proc(p_pos: rl.Vector2, target: rl.Vector2) {
+	dist : rl.Vector2 = target - p_pos
+	bullet := object {
+		pos = p_pos,
+		size = {32, 32},
+		vel = dist,
+		rect = {p_pos.x, p_pos.y, 32, 32}
+	}
+
+	append(&all_bullet, bullet)
+}
+
+
+firing :: proc() {
+	if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
+		spawn_bullet(player.pos, rl.GetMousePosition())
+	}		
+}
+
 check_collision :: proc() {
 	if player.pos.y > f32(window_height) {
 		fmt.println("Out of frame")
 	}
+
 
 	// for &obs_arr in all_obs {
 	// 	for &obs in obs_arr {
@@ -228,4 +257,7 @@ check_collision :: proc() {
 	// 		} 
 	// 	}
 	// }
+	for &bullet in all_bullet {
+		if bullet.pos 
+	}
 }
