@@ -64,7 +64,7 @@ main :: proc() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLUE)
 
-		// check_collision()  
+		check_collision()  
 		player_movement()
 		firing()
 		object_movement()
@@ -109,11 +109,11 @@ setup :: proc() {
 }
 
 draw :: proc() {
-	for &obs_arr in all_obs {
-		for obs in obs_arr {
-			rl.DrawRectangleV(obs.pos, obs.size, rl.YELLOW)
-		}
-	}
+	// for &obs_arr in all_obs {
+	// 	for obs in obs_arr {
+	// 		rl.DrawRectangleV(obs.pos, obs.size, rl.YELLOW)
+	// 	}
+	// }
 
 	for &sub_block_arr in all_sub_block {
 		for &sub_block_pair in sub_block_arr {
@@ -152,6 +152,7 @@ object_movement :: proc() {
 		for &sub_block_pair in sub_block_arr {
 			for &sub_block in sub_block_pair {
 				sub_block.pos.x -= obs_speed * rl.GetFrameTime()
+				sub_block.rect = {sub_block.pos.x, sub_block.pos.y, sub_block.size.x, sub_block.size.y}	
 			}
 		}
 	}
@@ -160,7 +161,12 @@ object_movement :: proc() {
 		angle : f32 = math.atan2_f32(bullet.vel.x, bullet.vel.y)
 		bullet.pos.x += 1000 * math.sin(angle) * rl.GetFrameTime()
 		bullet.pos.y += 1000 * math.cos(angle) * rl.GetFrameTime()
+		bullet.rect = {bullet.pos.x, bullet.pos.y, bullet.size.x, bullet.size.y}
 	}
+
+	// if len(all_bullet) != 0 {
+		// fmt.println(all_bullet[0].rect.x)
+	// }
 }
 
 spawn_obs :: proc() {
@@ -195,9 +201,9 @@ spawn_obs :: proc() {
 			pop_front(&all_obs)
 			ordered_remove(&all_sub_block, 0)
 
-			fmt.println("delete obs")
-			fmt.println("all obs : ", len(all_obs))
-			fmt.println("all sub block : ", len(all_sub_block))
+			// fmt.println("delete obs")
+			// fmt.println("all obs : ", len(all_obs))
+			// fmt.println("all sub block : ", len(all_sub_block))
 		}
 		
 	}
@@ -234,6 +240,7 @@ spawn_bullet :: proc(p_pos: rl.Vector2, target: rl.Vector2) {
 	}
 
 	append(&all_bullet, bullet)
+	fmt.println(len(all_bullet))
 }
 
 
@@ -248,16 +255,39 @@ check_collision :: proc() {
 		fmt.println("Out of frame")
 	}
 
-
-	// for &obs_arr in all_obs {
-	// 	for &obs in obs_arr {
-	// 		is_colliding : bool = rl.CheckCollisionRecs(player.rect, obs.rect)
-	// 		if is_colliding {
-	// 			fmt.println("collide")
-	// 		} 
-	// 	}
-	// }
-	for &bullet in all_bullet {
-		if bullet.pos 
+	for &sub_block_arr in all_sub_block {
+		for &sub_block_pair in sub_block_arr {
+			for &sub_block, index in sub_block_pair {
+				is_player_collided : bool = rl.CheckCollisionRecs(player.rect, sub_block.rect)
+				if is_player_collided {
+					fmt.println("collided with player")
+				}
+			}
+		}
 	}
+
+	if len(all_bullet) != 0 {
+		for &bullet, bullet_index in all_bullet {
+			if bullet.pos.x < 0 || bullet.pos.x > f32(window_width) || bullet.pos.y > f32(window_height) || bullet.pos.y < 0 {
+				ordered_remove(&all_bullet, bullet_index)
+				// fmt.println("bullet deleted")
+				// fmt.println(len(all_bullet))
+			} 
+			
+			for &sub_block_pair in all_sub_block {
+				for &sub_block_arr in sub_block_pair {
+					for &sub_block, sub_block_index in sub_block_arr {
+						is_bullet_collide : bool = rl.CheckCollisionRecs(bullet.rect, sub_block.rect)
+						if is_bullet_collide {
+							if len(all_bullet) > 1 {
+								ordered_remove(&all_bullet, bullet_index)
+							}
+							ordered_remove(&sub_block_arr, sub_block_index)
+						}
+					}
+				}
+			}
+		}
+	}
+
 }
